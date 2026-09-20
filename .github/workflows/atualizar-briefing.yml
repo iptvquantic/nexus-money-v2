@@ -1,0 +1,38 @@
+name: Atualizar briefing do dia
+
+on:
+  schedule:
+    - cron: '0 10 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  atualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o repositório
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Buscar manchetes reais e gerar o briefing
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: node scripts/atualizar-briefing.js
+
+      - name: Publicar só se algo mudou
+        run: |
+          git config user.name "nexus-money-bot"
+          git config user.email "bot@nexusmoney.local"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "Nada mudou hoje — não faz commit."
+          else
+            git commit -m "auto: atualiza briefing do dia"
+            git push
+          fi
